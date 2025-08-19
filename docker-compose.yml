@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  bot2:
+    build: .
+    image: bot2
+    container_name: chatbot
+    restart: unless-stopped
+    ports:
+      - "3002:3002"
