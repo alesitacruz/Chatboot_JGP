@@ -18,20 +18,17 @@ export async function processDocument(filePath, documentKey, userData, userState
   const validationPrompt = getDocumentPrompt(documentKey);
   const policyResult = await validateDocument(base64Data, mimeType, validationPrompt);
 
-
-  // 2. Validación de legibilidad y formato
-  //let copiar el codigo de validateFormat
+  // 2. Extracción de datos si aplica
   let extracted = {};
   switch (documentKey) {
     case 'foto_ci_an':
     case 'foto_ci_re': {
-      // Pedimos JSON con campos ci y name
-      const extractPrompt = `Extrae de esta imagen la cédula de identidad (CI) y el nombre completo, como obtener el CI si en la imagen detectas una  foto, saca el valor que esta debajo de la foto es es el CI, si no hay un valo debajo del CI, entonces busca en la esquina superior contraria a la foto, si no existe una foto busca el nombre y el CI en la esquina superior izquierda. JSON { \"ci\": \"...\", \"name\": \"...\" }.`;
+      const extractPrompt = `Extrae de esta imagen la cédula de identidad (CI) y el nombre completo, como obtener el CI si en la imagen detectas una foto, saca el valor que está debajo de la foto. Si no hay un valor debajo de la foto, entonces busca en la esquina superior contraria. JSON { "ci": "...", "name": "..." }.`;
       const jsonText = await validateDocument(base64Data, mimeType, extractPrompt);
       try {
         extracted = JSON.parse(jsonText);
       } catch {
-        // Fallback: parseo manual
+        // Fallback: regex manual
         const ciMatch = /\"ci\"\s*:\s*\"(\d{5,10})\"/.exec(jsonText);
         const nameMatch = /\"name\"\s*:\s*\"([^\"]+)\"/.exec(jsonText);
         extracted = {
@@ -41,33 +38,12 @@ export async function processDocument(filePath, documentKey, userData, userState
       }
       break;
     }
-    case 'custodia': {
-      const extractPrompt = `Verifica el tipo de documento que es, si es un RUAT o un FOLIO REAL, ambos son documentos Bolivianos. Si son alguno de estos documentos, obten el nombre del propietario en formato JSON { \"document_type\": \"...\", \"name\": \"...\" }.`;
-      const jsonText = await validateDocument(base64Data, mimeType, extractPrompt);
-      console.log("jsonText", jsonText);
-      try {
-        extracted = JSON.parse(jsonText);
-        console.log("extracted", extracted);
-        userStates[sender].data.tipo_documento_custodia = extracted.document_type;
-        console.log("userStates[sender].data.tipo_documento_custodia", userStates[sender].data.tipo_documento_custodia);
-        userStates[sender].matches = await compareWithUserData(extracted, userData);
-      } catch {
-        const document_type = /\"document_type\"\s*:\s*\"([^\"]+)\"/.exec(jsonText);
-        const nameMatch = /\"name\"\s*:\s*\"([^\"]+)\"/.exec(jsonText);
-        extracted = {
-          document_type: document_type?.[1] || null,
-          name: nameMatch?.[1] || null
-        };
-        console.log("extracted", extracted);
-        userStates[sender].data.tipo_documento_custodia = extracted.document_type;
-        console.log("userStates[sender].data.tipo_documento_custodia", userStates[sender].data.tipo_documento_custodia);
-        userStates[sender].matches =  await compareWithUserData(extracted, userData);
-      }
+    default:
       break;
-    }
-
   }
+
   console.log("Datos extraídos:", extracted);
+
   // 3. Comparación con datos de usuario
   const matches = await compareWithUserData(extracted, userData);
   if (!userStates[sender].matches) {
@@ -77,10 +53,10 @@ export async function processDocument(filePath, documentKey, userData, userState
       userStates[sender].matches = matches;
     }
   }
+
   const resultado = policyResult.trim(); // "si" o "no"
   return resultado;
 }
-
 
 /**
  * Compara datos extraídos con datos proporcionados por el usuario
@@ -93,7 +69,7 @@ async function compareWithUserData(extracted, userData) {
   if (userData.nombre_completo && extracted.name) {
     try {
       const isValid = await validateName(`
-      ¿El nombre "${userData.nombre_completo}" es similar a "${extracted.name}, no importa la posición de las palabras ni las tildes o mayusculas"?
+      ¿El nombre "${userData.nombre_completo}" es similar a "${extracted.name}", no importa la posición de las palabras ni las tildes o mayúsculas?
       Responde ÚNICAMENTE con "true" o "false".
     `);
 
@@ -111,5 +87,3 @@ async function compareWithUserData(extracted, userData) {
   }
   return results;
 }
-
-

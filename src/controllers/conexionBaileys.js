@@ -1,38 +1,35 @@
-import {
-  makeWASocket,
-  useMultiFileAuthState,
-  DisconnectReason
-} from "@whiskeysockets/baileys";
-import { handleIncomingMessage } from "../controllers/message.controller.js";
+// src/controllers/conexionBaileys.js
+import * as baileys from "@whiskeysockets/baileys";
+import qrcode from "qrcode-terminal";
+import { handleIncomingMessage } from "./message.controller.js";
 
-/**
- * Establece la conexión con WhatsApp y configura los eventos de conexión
- * y recepción de mensajes.
- * @param {Object} userStates - Estados de los usuarios
- * @param {Object} prompts - Prompts para las respuestas
- * @param {Object} handlers - Controladores para los eventos
- * @returns {Promise<import("@whiskeysockets/baileys").WAConnection>} - Conexión establecida
- */
-export const connectToWhatsApp = async (userStates, prompts, handlers) => {
+export const connectToWhatsApp = async (userStates = {}, prompts = {}, handlers = {}) => {
   console.log("Iniciando conexión con WhatsApp...");
 
-  const { state, saveCreds } = await useMultiFileAuthState("auth_info_baileys");
+  const { state, saveCreds } = await baileys.useMultiFileAuthState("auth_info_baileys");
 
-  const sock = makeWASocket({
+  const sock = baileys.makeWASocket({
     auth: state,
-    printQRInTerminal: true
+    printQRInTerminal: false,
   });
 
   sock.ev.on("creds.update", saveCreds);
 
-  sock.ev.on("connection.update", ({ connection, lastDisconnect }) => {
+  sock.ev.on("connection.update", (update) => {
+    const { connection, lastDisconnect, qr } = update;
+
+    if (qr) {
+      console.log("📲 Escanea este QR con WhatsApp:");
+      qrcode.generate(qr, { small: true });
+    }
+
     if (connection === "close") {
       const shouldReconnect =
-        lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
+        lastDisconnect?.error?.output?.statusCode !== baileys.DisconnectReason.loggedOut;
       console.log("Conexión cerrada. Reconectando:", shouldReconnect);
       if (shouldReconnect) connectToWhatsApp(userStates, prompts, handlers);
     } else if (connection === "open") {
-      console.log("Conexión a WhatsApp establecida");
+      console.log("✅ Conectado a WhatsApp");
     }
   });
 
@@ -46,3 +43,5 @@ export const connectToWhatsApp = async (userStates, prompts, handlers) => {
 
   return sock;
 };
+
+

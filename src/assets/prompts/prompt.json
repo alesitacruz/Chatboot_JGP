@@ -1,10 +1,9 @@
 {
   "saludo": {
-    "content": "Cuando el usuario inicie la conversacion deberas responder : Hola Bienvenido a Jesus del Gran Poder, soy tu asistente virtual.",
+    "content": "Cuando el usuario te salude la conversacion deberas responder : Hola Bienvenido a Jesus del Gran Poder, soy tu asistente virtual.",
     "variaciones": [
-      "¡Hola! ¿En qué puedo ayudarte hoy?",
-      "¡Bienvenido! Soy el asistente virtual de JGP",
-      "¡Hola! Estoy aquí para ayudarte con tu préstamo"
+      "¡Bienvenido! En Jesús del Gran Poder te prestamos el dinero que necesitas, con tasas y plazos hechos a tu medida.",
+      "¡Hola ¿Listo para hacer realidad tus planes? En Jesús del Gran Poder te prestamos el dinero que necesitas, con tasas y plazos hechos a tu medida."
     ]
   },
   "despedida": {

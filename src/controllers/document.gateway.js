@@ -11,8 +11,7 @@ import {
     messageRequestFile,
     messageRequestFileError,
     messageProcessFileError,
-    messageRequestFileCiError,
-    messageRequestFileCustodiaError
+    messageRequestFileCiError
 } from '../utils/message.js';
 import { userStateInit } from '../controllers/user.state.controller.js';
 import {
@@ -23,6 +22,7 @@ import {
 } from '../utils/document.flow.js'
 import { userStateExededRetryLimit } from '../controllers/user.state.controller.js';
 import { saveApplicationData } from '../controllers/user.data.controller.js';
+
 export const documentIngress = async (userStates, message, sock) => {
     const id = message.key.remoteJid;
 
@@ -119,7 +119,6 @@ export async function handleValidationResult(result, key, userState, userStates,
     try {
         console.log(`Manejando resultado de validación [${id}]:`, result);
         const isCIReDocument = userState.current_document === 'foto_ci_re';
-        const isCustodiaDocument = userState.current_document === 'custodia';
         const nextKey = getNextDocumentKey(key);
         const isValid = result === 'si';
 
@@ -134,38 +133,18 @@ export async function handleValidationResult(result, key, userState, userStates,
             return await handleInvalidAttempt(userStates, sock, id, messageRequestFileCiError);
         }
 
-        if (isCustodiaDocument) {
-            console.log("userStates[id].data.tipo_documento_custodia", userStates[id].matches);
-            if (!userStates[id].matches.nameMatch) {
-                userStates[id].current_document = 'custodia';
-                userStates[id].state = getDocumentState('custodia');
-                return await handleInvalidAttempt(userStates, sock, id, messageRequestFileCustodiaError);
-            }
-            if (userStates[id].data.tipo_documento_custodia === 'RUAT') {
-                await saveDataUser(userStates, id, sock);
-            }
-            else {
-                userState.current_document = nextKey;
-                userState.state = getDocumentState(nextKey);
-                await sock.sendMessage(id, {
-                    text: `✅ Documento validado correctamente.\n ${getDocumentMessage(nextKey)}`
-                });
-            }
+        // Si pasa validación
+        userStates[id].intents = 0;
+
+        if (nextKey) {
+            userState.current_document = nextKey;
+            userState.state = getDocumentState(nextKey);
+            await sock.sendMessage(id, {
+                text: `✅ Documento validado correctamente.\n ${getDocumentMessage(nextKey)}`
+            });
         } else {
-            userStates[id].intents = 0;
-
-            if (nextKey) {
-                userState.current_document = nextKey;
-                userState.state = getDocumentState(nextKey);
-                await sock.sendMessage(id, {
-                    text: `✅ Documento validado correctamente.\n ${getDocumentMessage(nextKey)}`
-                });
-            } else {
-                await saveDataUser(userStates, id, sock);
-            }
-
+            await saveDataUser(userStates, id, sock);
         }
-
 
     } catch (error) {
         console.error(`Error manejando resultado de validación [${id}]:`, error);
@@ -200,7 +179,6 @@ export async function handleExceededAttempts(userStates, sock, id) {
     }
 }
 
-
 export function getFileExtension(message) {
     try {
         const { documentMessage, imageMessage, videoMessage } = message.message || {};
@@ -215,26 +193,28 @@ export function getFileExtension(message) {
 }
 
 export async function saveDataUser(userStates, id, sock) {
-    try {
-        const userTempDir = directoryManager.getPath("temp") + "/" + id;
-        if (fs.existsSync(userTempDir)) {
-            fs.rmSync(userTempDir, { recursive: true, force: true });
-        }
+    try {
+        // 1. Save the application data, which includes moving files from temp to assets
+        const saveSuccess = await saveApplicationData(id, userStates[id].data);
 
-        const saveSuccess = await saveApplicationData(id,  userStates[id].data);
+        if (saveSuccess.success) { // Note: saveApplicationData returns an object with a 'success' key
+            
+            // 2. Only if the save was successful, delete the temporary directory
+            const userTempDir = directoryManager.getPath("temp") + "/" + id;
+            if (fs.existsSync(userTempDir)) {
+                fs.rmSync(userTempDir, { recursive: true, force: true });
+            }
 
-        if (saveSuccess) {
-
-            const closureMessage = `✅ Todos los documentos han sido recibidos y guardados correctamente. El chatbot se cerrará ahora y se reiniciará en 5 minutos. Por favor, vuelve a contactarnos después de este tiempo.`;
-            sock.sendMessage(id, { text: closureMessage });
-            logConversation(id, closureMessage, "bot");
-            userStateFinished(userStates, id);
-            return closureMessage;
-        } else {
-            return `❌ Hubo un error al guardar tu solicitud. Por favor, intenta nuevamente o contacta con soporte técnico.`;
-        }
-    } catch (error) {
-        console.error("Error al guardar la solicitud:", error);
-        return `❌ Ocurrió un error inesperado al procesar tu solicitud. Por favor, intenta nuevamente o contacta con soporte técnico.`;
-    }
+            const closureMessage = `✅ Todos los documentos han sido recibidos y guardados correctamente. El chatbot se cerrará ahora y se reiniciará en 5 minutos. Por favor, vuelve a contactarnos después de este tiempo.`;
+            sock.sendMessage(id, { text: closureMessage });
+            logConversation(id, closureMessage, "bot");
+            userStateFinished(userStates, id);
+            return closureMessage;
+        } else {
+            return `❌ Hubo un error al guardar tu solicitud. Por favor, intenta nuevamente o contacta con soporte técnico.`;
+        }
+    } catch (error) {
+        console.error("Error al guardar la solicitud:", error);
+        return `❌ Ocurrió un error inesperado al procesar tu solicitud. Por favor, intenta nuevamente o contacta con soporte técnico.`;
+    }
 }

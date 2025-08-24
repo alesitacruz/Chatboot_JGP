@@ -77,7 +77,9 @@ export const generateResponse = async (intent, userMessage, sender, prompts, use
 
   let finalResponse = baseResponse;
 
-  if (!inProcess && userState !== "finished") {
+  // Evita concatenar el menú si la intención es iniciar trámite/préstamo
+  const intentsWithoutMenu = ["tramite_virtual", "prestamos"];
+  if (!inProcess && userState !== "finished" && !intentsWithoutMenu.includes(intent)) {
     finalResponse += `\n${contentMenu}`;
   }
 
@@ -104,10 +106,14 @@ export const handleUserMessage = async (sender, message, prompts, userStates) =>
 export const handleVirtualApplication = async (sender, userMessage, userStates, prompts) => {
   // Si NO está en trámite, inicializamos
   if (!isInApplicationProcess(sender)) {
+    const userName = userStates[sender]?.data?.userName || "cliente"; // Obtenemos el nombre del estado
     userStateVerifyAsalariado(userStates, sender);
-    return `${getRandomVariation(
-      prompts["tramite_virtual"]
-    )} (Responda Sí o No)`;
+
+    // Construimos el mensaje personalizado con el nombre del usuario
+    const personalizedMessage = `Perfecto **${userName}**, escogiste la opción de préstamo. Para continuar, necesito saber lo siguiente, ¿eres asalariado? (Responde si o no)`;
+
+    // Devolvemos el mensaje personalizado en lugar del mensaje genérico
+    return personalizedMessage;
   } else {
     // Continúa en el flujo
     console.log(`El usuario ${sender} ya está en trámite, continuando...`);
@@ -118,5 +124,5 @@ export const handleVirtualApplication = async (sender, userMessage, userStates, 
       userMessage
     );
   }
-}
+};
 

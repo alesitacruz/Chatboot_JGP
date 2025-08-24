@@ -1,8 +1,8 @@
-import { contentMenu } from "../utils/message.js";
+import { contentMenu, contentMenuNoAccede} from "../utils/message.js";
 
 export const MIN_PLAZO = 6;
 export const MAX_PLAZO = 12;
-export const MIN_MONTO = 0;
+export const MIN_MONTO = 1000;
 export const MAX_MONTO = 5000;
 export const MIN_SUELDO = 0;
 export const MAX_SUELDO = 1000000;
@@ -16,6 +16,16 @@ export const CORRECTION_MAP = {
   4: 'correccion-email',
   5: 'correccion-enlace_maps'
 };
+
+export const showVerificationCapacidad = (data) => {
+  return `Perfecto, gracias por brindarme la informacion. Con los datos proporcionados, usted califica para un crédito segun su capacidad de pago. A continuacion le detallo la propuesta:
+- 1️⃣ *Monto:* Bs. ${data.monto}
+- 2️⃣ *Plazo:* ${data.plazo_meses} meses
+- 🔲 *Cuota:* Bs. ${data.cuota_mensual}
+Usted cancelara una cuota mensual de ${data.cuota_mensual} durante ${data.plazo_meses} meses. 
+Con esta informacion,¿Te gustaria iniciar un trámite virtual?(Sí/No)`;
+}
+
 
 export const showVerification = (data) => {
   return `Usted cuenta con la capacidad de pago, antes de pasar al siguiente paso:
@@ -60,5 +70,5 @@ export const showChangeData = () => {
   return `🔄 ¿Qué dato deseas corregir?\n1️⃣ Nombre\n2️⃣ Cédula\n3️⃣ Dirección\n4️⃣ Email\n5️⃣Ubicacion Compartida  \n(Escribe el número de la opción o 'cancelar' para terminar.)`;
 }
 export const showDontGetTramite = () => {
-  return `❌ *No puede acceder al trámite*. \n\n${contentMenu}`
+  return `❌ *Lo siento, no pudiste acceder al trámite en este momento*. Si necesitas ayuda, puedes contactar a uno de nuestros asesores al número 77270351. También puedes visitar cualquiera de nuestras oficinas para recibir asistencia en persona. Puedes acceder tambien a nuestro menu rapido. \n\n${contentMenuNoAccede}`
 }

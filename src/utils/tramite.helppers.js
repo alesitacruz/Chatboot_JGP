@@ -1,5 +1,5 @@
 import { MAX_CANCEL_ATTEMPTS } from '../utils/constant.js'
-import { showOptionsDeuda, showVerification, showDontGetTramite } from '../utils/tramite.constant.js'
+import { showOptionsDeuda, showVerification, showDontGetTramite,showVerificationCapacidad } from '../utils/tramite.constant.js'
 import { getTramitePrompt } from '../utils/tramite.flow.js'
 import { calculateCapacidad, calculateCapacidadFamiliar, calculateMaxLoanAmount } from '../utils/tramite.calculations.js';
 import { resetUserState } from '../controllers/user.state.controller.js';
@@ -14,7 +14,7 @@ export const processCapacityEvaluation = (data, userStates, sender) => {
 
   if (capacidad > data.cuota_mensual) {
     userStates[sender].state = "verificacion";
-    return showVerification(data);
+    return showVerificationCapacidad(data);
   }
 
   userStates[sender].state = "familiar_asalariado";
@@ -30,7 +30,7 @@ export const processCapacityEvaluationFamiliar = (data, userStates, sender) => {
 
   if (capacidad > data.cuota_mensual) {
     userStates[sender].state = "verificacion";
-    return showVerification(data);
+    return showVerificationCapacidad(data);
   }
 
   userStates[sender].state = "select_option_deuda";

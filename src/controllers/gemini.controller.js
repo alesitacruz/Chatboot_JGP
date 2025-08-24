@@ -2,6 +2,7 @@ import { GoogleGenAI } from "@google/genai";
 import { GEMINI_API_KEY } from "../config/index.js";
 import { INTENT_CLASSIFIER_PROMPT } from "../utils/prompt.js";
 
+const delay = ms => new Promise(res => setTimeout(res, ms));
 const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
 export const classifyIntent = async (message) => {

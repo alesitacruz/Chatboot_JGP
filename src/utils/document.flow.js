@@ -104,24 +104,6 @@ Responde únicamente con:
 Responde únicamente con:
 "si" o "no",sin tildes ni comillas.`
   },
-  {
-    key: 'custodia',
-    label: 'Documento de custodia',
-    emoji: '📜',
-    mimeType: 'image/jpeg',
-    prompt: `Analiza si este archivo si es un RUAT o un FOLIO REAL, ambos son documentos Bolivianos.
-Responde únicamente con:
-"si" o "no" , sin tildes ni comillas. y si es no dime el porque no.`
-  },
-  {
-    key: 'boleta_impuesto',
-    label: 'Boleta de impuesto',
-    emoji: '🧾',
-    mimeType: 'image/jpeg',
-    prompt: `Analiza si esta imagen corresponde a una boleta de impuesto, con datos legibles y reciente.
-Responde únicamente con:
-"si" o "no",sin tildes ni comillas.`
-  },
 ];
 
 /**

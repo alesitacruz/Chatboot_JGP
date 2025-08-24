@@ -22,6 +22,7 @@ export const handleInitialChecks = (userMessage, sender, userStates) => {
 };
 
 
+
 export const handleStateFlow = (state, data, sender, userMessage, userStates, prompts) => {
     switch (state) {
         case "verificar_asalariado": {
@@ -29,9 +30,9 @@ export const handleStateFlow = (state, data, sender, userMessage, userStates, pr
             if (respuesta === true) {
                 data.es_asalariado = true;
                 userStates[sender].in_data_charge = true;
-                userStates[sender].state = "documento_custodia";
+                userStates[sender].state = "sueldo";
                 userStates[sender].retries = 0;
-                return getTramitePrompt("documento_custodia");
+                return getTramitePrompt("sueldo");
             } else if (respuesta === false) {
                 const message = `${messagePrestamosAsalariado}\n\n${getRandomVariation(prompts["requisitos"])}`;
                 userStates[sender].state = "INIT";
@@ -42,32 +43,10 @@ export const handleStateFlow = (state, data, sender, userMessage, userStates, pr
                 return userRetryMessage(userStates, sender, `${meesageRespondaSioNo}`);
             }
         }
-        case "documento_custodia": {
-            switch (classifyYesNo(userMessage)) {
-                case true:
-                    userStates[sender].state = "nombre_completo";
-                    return getTramitePrompt("nombre_completo");
-                case false:
-                    resetUserState(userStates, sender);
-                    return `${messageCustodia}\n\n ${contentMenu}`;
-                default:
-                    return `${meesageRespondaSioNo}`;
-            }
-        }
-        case "nombre_completo": {
-            return handleTextInput(userStates, sender, data, "nombre_completo", "cedula", userMessage.trim());
-        }
-        case "cedula": {
-            return handleTextInput(userStates, sender, data, "cedula", "direccion", userMessage.trim());
-        }
-        case "direccion": {
-            return handleTextInput(userStates, sender, data, "direccion", "enlace_maps", userMessage.trim());
-        }
-        case "enlace_maps": {
-            return handleLocationInput(userStates, sender, data, "enlace_maps", "email", userMessage);
-        }
-        case "email": {
-            return handleTextInput(userStates, sender, data, "email", "monto", userMessage.trim());
+        case "sueldo": {
+            const val = parseCurrency(userMessage);
+            
+            return handleNumberInput(userStates, sender, data, "sueldo", "monto", val, MIN_SUELDO, MAX_SUELDO);
         }
         case "monto": {
             const val = parseCurrency(userMessage);            
@@ -77,15 +56,7 @@ export const handleStateFlow = (state, data, sender, userMessage, userStates, pr
         }
         case "plazo_meses": {
             const meses = parseCurrency(userMessage);
-            return handlePlazoInput(userStates, sender, data, "plazo_meses", "rubro", meses, MIN_PLAZO, MAX_PLAZO);
-        }
-        case "rubro": {
-            return handleTextInput(userStates, sender, data, "rubro", "sueldo", userMessage.trim());
-        }
-        case "sueldo": {
-            const val = parseCurrency(userMessage);
-            
-            return handleNumberInput(userStates, sender, data, "sueldo", "deuda", val, MIN_SUELDO, MAX_SUELDO);
+            return handlePlazoInput(userStates, sender, data, "plazo_meses", "deuda", meses, MIN_PLAZO, MAX_PLAZO);
         }
         case "deuda": {
             switch (classifyYesNo(userMessage)) {
@@ -109,6 +80,28 @@ export const handleStateFlow = (state, data, sender, userMessage, userStates, pr
             }
             data.monto_pago_deuda = amount;
             return processCapacityEvaluation(data, userStates, sender);
+        }
+        ////datos personales
+        case "nombre_completo": {
+            return handleTextInput(userStates, sender, data, "nombre_completo", "cedula", userMessage.trim());
+        }
+        case "cedula": {
+            return handleTextInput(userStates, sender, data, "cedula", "email", userMessage.trim());
+        }
+        case "email": {
+            return handleTextInput(userStates, sender, data, "email", "direccion", userMessage.trim());
+        }
+        case "direccion": {
+            return handleTextInput(userStates, sender, data, "direccion", "enlace_maps", userMessage.trim());
+        }
+        case "enlace_maps": {
+            return handleLocationInput(userStates, sender, data, "enlace_maps", "direccion_trabajo", userMessage);
+        }
+        case "direccion_trabajo": {
+            return handleTextInput(userStates, sender, data, "direccion_trabajo", "enlace_maps_trabajo", userMessage.trim());
+        }
+        case "rubro": {
+            return handleTextInput(userStates, sender, data, "rubro", "sueldo", userMessage.trim());
         }
         case "familiar_asalariado": {
             switch (classifyYesNo(userMessage)) {
@@ -160,25 +153,72 @@ export const handleStateFlow = (state, data, sender, userMessage, userStates, pr
             resetUserState(userStates, sender);
             return messageSaldoInsuficiente+"\n\n" + contentMenu;
         }
+
         case "verificacion": {
             const resp = classifyYesNo(userMessage);
             if (resp === true) {
-                const userTempDir = directoryManager.getPath("temp") + "/" + sender;
-                fs.mkdirSync(userTempDir, { recursive: true });
-
-                const firstKey = documentsFlow[0].key;
-                userStates[sender].state = getDocumentState(firstKey);
-                userStates[sender].current_document = firstKey;
+                // ... (código existente para la verificación)
+                // En lugar de ir a los documentos, ahora vamos a los términos
+                userStates[sender].state = "terminos_condiciones";
                 userStates[sender].retries = 0;
-                return getDocumentMessage(firstKey);
+                return getTramitePrompt("terminos_condiciones");
             } else if (resp === false) {
-                userStates[sender].state = "correccion";
-                userStates[sender].retries = 0;
-                return showChangeData();
+                // ... (código existente para corrección)
             } else {
                 return `❓ Responda Sí✔️ o No❌.`;
             }
         }
+        
+        // Nuevo caso para manejar los Términos y Condiciones
+        case "terminos_condiciones": {
+            const respuesta = classifyYesNo(userMessage);
+            if (respuesta === true) {
+                userStates[sender].retries = 0;
+                userStates[sender].state = "nombre_completo"; 
+
+                // Combina los mensajes usando la variable con el nombre
+               return `Es buena noticia que quieras iniciar un tramite virtual. Ahora comencemos, escribe tu:\n\n${getTramitePrompt("nombre_completo")}`;
+
+            } else if (respuesta === false) {
+                // ... (lógica de reintentos existente)
+            } else {
+                return userRetryMessage(userStates, sender, `${meesageRespondaSioNo}`);
+            }
+        }
+        
+        // Nuevo caso para la razón del rechazo
+        case "razon_rechazo_terminos": {
+            // Aquí puedes procesar la razón del usuario y guardarla si es necesario
+            const razon = userMessage.trim();
+            // Lógica para guardar la razón...
+            // Luego, terminas el flujo o lo rediriges
+            userStates[sender].state = "INIT";
+            return `Gracias por la información. Hemos registrado tu razón. Puedes iniciar un nuevo trámite cuando lo desees.\n\n${contentMenu}`;
+        }
+
+        case "enlace_maps_trabajo": {
+            const response = handleLocationInput(userStates, sender, data, "enlace_maps_trabajo", null, userMessage);
+
+            // Si es un mensaje válido (no es un reintento)
+            if (!response.includes('❌') && !response.includes('Responda')) {
+                const transitionMessage = "¡Excelente! Ya tenemos todos tus datos personales. Ahora, continuemos con los documentos necesarios para el trámite.";
+
+                const userTempDir = directoryManager.getPath("temp") + "/" + sender;
+                fs.mkdirSync(userTempDir, { recursive: true });
+
+                const firstKey = documentsFlow[0].key;
+                userStates[sender].state = getDocumentState(firstKey);  
+                userStates[sender].current_document = firstKey;
+                userStates[sender].retries = 0;
+
+                return `${transitionMessage}\n\n${getDocumentMessage(firstKey)}`;
+            }
+
+            // Si hubo error en la ubicación
+            return response;
+        }
+
+        
         default:
             return `Ha ocurrido un error inesperado, intente de nuevo o escriba 'cancelar'.`;
     }

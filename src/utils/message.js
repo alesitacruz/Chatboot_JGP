@@ -6,6 +6,14 @@ export const contentMenu = `
   4️⃣ Iniciar Trámite Virtual
   (Selecciona una opción escribiendo el número correspondiente)
     `;
+  
+export const contentMenuNoAccede = `
+  📋 *Menú Principal:*
+  1️⃣ Información General
+  2️⃣ Requisitos
+  3️⃣ Sucursales y Horarios
+  (Selecciona una opción escribiendo el número correspondiente)
+    `;
 
 export const messageExceededRetries = '❌ Demasiados intentos inválidos. Por favor, inicie el trámite nuevamente.';
 
